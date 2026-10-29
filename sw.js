@@ -1,5 +1,5 @@
 /* 앱 껍데기를 캐시해서 인터넷이 약해도 열리게 한다. 데이터(api.github.com)는 건드리지 않는다. */
-var V = "sp-shell-v1";
+var V = "sp-shell-v2";
 var SHELL = ["./", "index.html", "gh-store.js?v=1", "manifest.webmanifest", "icon.svg", "icon-192.png", "apple-touch-icon.png",
   "fonts/GmarketSans-Light.woff", "fonts/GmarketSans-Medium.woff", "fonts/GmarketSans-Bold.woff"];
 self.addEventListener("install", function (e) {
