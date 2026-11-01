@@ -380,6 +380,38 @@ body{font-weight:400}
 .dot{background:var(--c);box-shadow:none}
 .dot.open{background:transparent;box-shadow:inset 0 0 0 2px var(--c)}
 .dot.done{background:var(--c);box-shadow:none}
+
+/* ---- 주간 화면(크게 보기) ---- */
+.pane-week{display:none}
+body[data-view="week"] .pane-week{display:block;grid-column:1/-1}
+body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none}
+.desk{display:none}
+@media (min-width:700px){.desk{display:inline-grid}body:not([data-view="week"]) .desk-back{display:none}body[data-view="week"] .desk-go{display:none}}
+.wk-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.wk-sum div{border:1.5px solid var(--line);border-radius:14px;padding:10px 12px}
+.wk-sum b{display:block;font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
+.wk-sum span{font-size:13px;color:var(--mute)}
+.wk-days{display:grid;grid-template-columns:1fr;gap:12px}
+.wk-day{border:1.5px solid var(--line);border-radius:16px;padding:12px 14px;min-width:0}
+.wk-day.today{border-color:var(--fg)}
+.wk-day.free{opacity:.7}
+.wk-dh{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:left;padding-bottom:8px;border-bottom:2px solid var(--fg);margin-bottom:6px}
+.wk-dh .dn{font-size:20px;font-weight:500}
+.wk-dh .dn small{font-size:14px;color:var(--mute);font-weight:400;margin-left:6px}
+.wk-dh .dm{font-size:14px;color:var(--mute);text-align:right;font-variant-numeric:tabular-nums;line-height:1.35}
+.wk-dh .dm em{font-style:normal;color:var(--fg)}
+.wk-dh .dm .over{color:var(--bad)}
+.wk-it{display:flex;align-items:center;gap:8px;padding:7px 0 7px 8px;border-left:5px solid var(--c);margin-bottom:3px;background:color-mix(in srgb,var(--c) 8%,transparent);border-radius:0 8px 8px 0}
+.wk-it.done{opacity:.45}
+.wk-it.done .wt{text-decoration:line-through}
+.wk-it .wtm{flex:none;width:44px;font-size:14px;color:var(--mute);font-variant-numeric:tabular-nums}
+.wk-it .wt{flex:1;min-width:0;font-size:17px;line-height:1.35;word-break:keep-all;overflow-wrap:anywhere}
+.wk-it .we{flex:none;font-size:14px;color:var(--mute);font-variant-numeric:tabular-nums}
+.wk-it.sch .wt{font-size:15px;color:var(--mute)}
+.wk-it .chk{flex:none}
+.wk-emp{padding:12px 4px;color:var(--mute);font-size:15px}
+@media (min-width:700px){.wk-days{grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}.wk-it .wt{font-size:18px}}
+@media (max-width:699px){body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none}.wk-sum{grid-template-columns:repeat(2,1fr)}.wk-sum b{font-size:20px}}
 </style>
 
 <div class="app">
@@ -392,6 +424,8 @@ body{font-weight:400}
       <button class="hbtn" data-act="open-progress">과목별 진도</button>
       <button class="hbtn" id="hb-timer" data-act="open-timer">타이머</button>
       <button class="hbtn" data-act="theme" id="hb-theme">화이트</button>
+      <button class="hbtn desk desk-go" data-act="tab" data-view="week">주간 크게</button>
+      <button class="hbtn desk desk-back" data-act="tab" data-view="day">기본 화면</button>
       <button class="hbtn" data-act="open-settings">설정</button>
     </div>
   </header>
@@ -427,6 +461,19 @@ body{font-weight:400}
     </div>
   </section>
 
+  <section class="pane pane-week" aria-label="주간 계획">
+    <div class="pane-head">
+      <h2 id="wk-title"></h2>
+      <div class="nav">
+        <button class="ibtn" data-act="wk-prev" aria-label="이전 주">‹</button>
+        <button class="tbtn" data-act="wk-this">이번 주</button>
+        <button class="ibtn" data-act="wk-next" aria-label="다음 주">›</button>
+      </div>
+    </div>
+    <div class="wk-sum" id="wk-sum"></div>
+    <div class="wk-days" id="wk-days"></div>
+  </section>
+
   <section class="pane pane-day" aria-label="일간 계획">
     <div class="pane-head">
       <h2 id="day-title"></h2>
@@ -459,6 +506,7 @@ body{font-weight:400}
 
 <nav class="tabs" aria-label="화면 전환">
   <button data-act="tab" data-view="month" aria-selected="false">월간</button>
+  <button data-act="tab" data-view="week" aria-selected="false">주간</button>
   <button data-act="tab" data-view="day" aria-selected="true">일간</button>
 </nav>
 
@@ -509,7 +557,7 @@ body{font-weight:400}
          loaded:{goals:false,plans:false,todos:false,sessions:false,backlog:true},db:null,dbChecked:false,live:{},view:"day"};
   var busy={}, form=null, toastFn=null;
 
-  try{var sv=localStorage.getItem("sp-view");if(sv==="month"||sv==="day")S.view=sv;var cf=localStorage.getItem("sp-catf");if(cf==="정시"||cf==="수시"||cf==="all")S.catf=cf}catch(e){}
+  try{var sv=localStorage.getItem("sp-view");if(sv==="month"||sv==="day"||sv==="week")S.view=sv;var cf=localStorage.getItem("sp-catf");if(cf==="정시"||cf==="수시"||cf==="all")S.catf=cf}catch(e){}
   /* 마지막으로 본 데이터를 먼저 보여 준다(저장소 연결 전, 연결 실패 때도 사본이 보임) */
   try{
     var c=JSON.parse(localStorage.getItem(CK)||"null");
@@ -698,6 +746,44 @@ body{font-weight:400}
       '<li class="empty">타이머로 공부하면 여기에 기록돼요.</li>';
   }
 
+  /* ---------- 주간(크게 보기) ---------- */
+  function dayCap(key){
+    if(key>="2026-12-07"&&key<="2026-12-18")return 0;
+    if(key>="2026-12-19")return 720;
+    var w=parse(key).getDay();return w===6?864:w===0?288:432;
+  }
+  function hmin(m){m=Math.round(m);var h=Math.floor(m/60);return h?(m%60?h+"시간 "+(m%60)+"분":h+"시간"):m+"분"}
+  function renderWeek(){
+    if(S.view!=="week")return;
+    var d=parse(S.sel), off=(d.getDay()+6)%7, mon=new Date(d.getFullYear(),d.getMonth(),d.getDate()-off), sun=new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+6);
+    $("#wk-title").textContent=(mon.getMonth()+1)+"월 "+mon.getDate()+"일 – "+(sun.getMonth()+1)+"월 "+sun.getDate()+"일";
+    var totP=0,totC=0,totN=0,totD=0,h="";
+    for(var i=0;i<7;i++){
+      var dd=new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+i), key=ymd(dd);
+      var plans=sortItems("plans",S.plans.filter(function(p){return p.date===key&&catOk(p)}));
+      var todos=sortItems("todos",S.todos.filter(function(p){return p.date===key&&catOk(p)}));
+      var pm=plans.reduce(function(a,x){return a+(x.est>0?x.est:0)},0), cap=dayCap(key);
+      var all=plans.concat(todos), dn=all.filter(function(x){return x.done}).length;
+      totP+=pm; totC+=cap; totN+=all.length; totD+=dn;
+      var free=cap-pm, tag="";
+      if(cap===0)tag=(key<="2026-12-13"?"내신 마무리 주간":"기말고사");
+      var meta='<em>계획 '+hmin(pm)+'</em>'+(cap?'<br>'+(free>=0?'남는 시간 <em>'+hmin(free)+'</em>':'<span class="over">'+hmin(-free)+' 초과</span>'):(tag?'<br>'+tag:""));
+      var rows=plans.map(function(p){
+        var sb=subj(p.subject);
+        return '<li class="wk-it'+(p.done?" done":"")+'" style="--c:'+esc(sb.color)+'"><span class="wtm">'+esc(tmTxt(p.start,true))+'</span><span class="wt">'+esc(p.title)+'</span>'+(p.est>0?'<span class="we">'+p.est+'분</span>':"")+
+          '<button class="chk" data-act="toggle" data-col="plans" data-id="'+esc(p.id)+'" aria-pressed="'+(p.done?"true":"false")+'" aria-label="완료 표시"></button></li>';
+      }).concat(todos.map(function(p){
+        var sb=subj(p.subject);
+        return '<li class="wk-it sch'+(p.done?" done":"")+'" style="--c:'+esc(sb.color)+'"><span class="wtm">'+(p.slot==="meal"?"식사":p.slot==="school"?"학교":"")+'</span><span class="wt">'+esc(p.title)+'</span>'+(p.est>0?'<span class="we">'+p.est+'분</span>':"")+
+          '<button class="chk" data-act="toggle" data-col="todos" data-id="'+esc(p.id)+'" aria-pressed="'+(p.done?"true":"false")+'" aria-label="완료 표시"></button></li>';
+      }));
+      h+='<div class="wk-day'+(key===today?" today":"")+(all.length?"":" free")+'"><button class="wk-dh" data-act="pick-day" data-date="'+key+'"><span class="dn">'+WD[dd.getDay()]+'<small>'+(dd.getMonth()+1)+"/"+dd.getDate()+(key===today?" · 오늘":"")+'</small></span><span class="dm">'+meta+'</span></button>'+
+        (rows.length?'<ul>'+rows.join("")+'</ul>':'<div class="wk-emp">'+(loading()?"불러오는 중…":"계획 없음")+'</div>')+'</div>';
+    }
+    $("#wk-sum").innerHTML='<div><b>'+hmin(totP)+'</b><span>이번 주 계획</span></div><div><b>'+(totC?hmin(Math.max(0,totC-totP)):"–")+'</b><span>남는 시간'+(totC&&totC<totP?" (초과)":"")+'</span></div><div><b>'+totD+' / '+totN+'</b><span>완료</span></div><div><b>'+(totC?hmin(totC):"–")+'</b><span>쓸 수 있는 시간</span></div>';
+    $("#wk-days").innerHTML=h;
+  }
+
   function renderBacklog(){
     var sec=$("#bk-sec"),g={};
     S.backlog.filter(catOk).forEach(function(b){var k=b.trk||"기타";var x=g[k]||(g[k]={n:0,m:0,c:b.cat});x.n++;x.m+=b.est||0});
@@ -724,7 +810,7 @@ body{font-weight:400}
     stText();
   }
   var raf=0;
-  function render(){cancelAnimationFrame(raf);raf=requestAnimationFrame(function(){renderChrome();renderMonth();renderDay();renderBacklog();renderProgress()})}
+  function render(){cancelAnimationFrame(raf);raf=requestAnimationFrame(function(){renderChrome();renderMonth();renderDay();renderWeek();renderBacklog();renderProgress()})}
 
   /* ---------- 저장 ---------- */
   function guard(key,fn){
@@ -1331,6 +1417,9 @@ body{font-weight:400}
     else if(a==="next-month")shiftMonth(1);
     else if(a==="this-month"){S.vy=new Date().getFullYear();S.vm=new Date().getMonth()+1}
     else if(a==="pick-day"){S.sel=el.dataset.date;var d=parse(S.sel);S.vy=d.getFullYear();S.vm=d.getMonth()+1;S.view="day";try{localStorage.setItem("sp-view","day")}catch(x){}}
+    else if(a==="wk-prev")shiftDay(-7);
+    else if(a==="wk-next")shiftDay(7);
+    else if(a==="wk-this"){S.sel=today;S.vy=new Date().getFullYear();S.vm=new Date().getMonth()+1}
     else if(a==="prev-day")shiftDay(-1);
     else if(a==="next-day")shiftDay(1);
     else if(a==="today"){S.sel=today;S.vy=new Date().getFullYear();S.vm=new Date().getMonth()+1}
