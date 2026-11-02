@@ -1330,6 +1330,7 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
   /* ---------- 과목별·교재별 진도 ---------- */
   var P={cat:"all",subj:"all",open:{}};
   var GRP_RULES=[
+    [/^1등급 만들기/,"1등급 만들기 역학과에너지"],[/^RPM 미적분/,"RPM 미적분Ⅰ"],[/^자이스토리 대수/,"자이스토리 대수"],[/^방인혁.*실전문제/,"방인혁 실전문제"],
     [/^시발점 기하/,"시발점 기하"],[/^RPM 기하/,"RPM 기하"],[/^쎈 기하/,"쎈 기하"],[/^자이스토리 기하/,"자이스토리 기하"],
     [/^방인혁/,"방인혁 강의"],[/^기출PICK 역학/,"기출PICK 역학과에너지"],[/^선생님 문제집/,"선생님 문제집"],[/^대치동/,"대치동 비밀특강"],
     [/^시발점 미적분1 복습/,"시발점 미적분1 복습"],[/^시발점 미적분1/,"시발점 미적분1"],[/^쎈 미적분/,"쎈 미적분Ⅰ"],[/^자이스토리 미적분/,"자이스토리 미적분Ⅰ"],
@@ -1341,6 +1342,7 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
   ];
   function grpName(it){
     var t=String(it.title||"").replace(/\s*\(\d+\/\d+\)/g,"").trim();
+    var fm=t.match(/^(국어|수학|영어|기하|물리|생명) (기말 복습|정시 유지)/);if(fm)return fm[1]+" "+fm[2];
     for(var i=0;i<GRP_RULES.length;i++)if(GRP_RULES[i][0].test(t))return GRP_RULES[i][1];
     return t.split(" ")[0]||"기타";
   }
@@ -1353,7 +1355,7 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
       if(!it.date||!(it.est>0)||/^오늘 푼 문제 오답/.test(it.title||""))return;
       if(P.cat!=="all"&&it.cat!==P.cat)return;
       if(P.subj!=="all"&&it.subject!==P.subj)return;
-      var nm=grpName(it),k=it.subject+"|"+nm;
+      var nm=grpName(it),k=it.subject+"|"+nm+"|"+(it.cat||"");
       var g=map[k];
       if(!g){g=map[k]={name:nm,subject:it.subject,cats:{},first:it.date,last:it.date,n:0,nd:0,min:0,mind:0,items:[]};order.push(g)}
       g.cats[it.cat||""]=1;
@@ -1403,7 +1405,7 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
     var lastC="";
     gs.forEach(function(x){
       if(P.subj==="all"&&x.subject!==lastC){lastC=x.subject;b+='<h3 class="pgh" style="--c:'+esc(subj(x.subject).color)+'">'+esc(subj(x.subject).name)+"</h3>"}
-      var key=x.subject+"|"+x.name,pc=x.min?Math.round(x.mind/x.min*100):0;
+      var key=x.subject+"|"+x.name+"|"+Object.keys(x.cats).join(","),pc=x.min?Math.round(x.mind/x.min*100):0;
       var cs=Object.keys(x.cats).filter(Boolean).map(function(c){return '<span class="cat'+(c==="수시"?" s":"")+'">'+esc(catLabel(c))+"</span>"}).join("");
       var nx=null;for(var i=0;i<x.items.length;i++)if(!x.items[i].done){nx=x.items[i];break}
       var open=!!P.open[key];
