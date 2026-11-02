@@ -1,4 +1,4 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="theme-color" content="#0a0a0a"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="공부 계획표"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="apple-touch-icon.png"><title>공부 계획표</title><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="theme-color" content="#0a0a0a"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="공부 계획표"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="apple-touch-icon.png"><title>공부 계획표</title><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@700;900&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
@@ -21,7 +21,7 @@
   --bg:#0a0a0a; --fg:#f2f2f2; --mute:#9b9b9b; --line:#262626; --soft:#161616;
   --inv-bg:#f2f2f2; --inv-fg:#0a0a0a; --overlay:rgba(0,0,0,.65); --bad:#ff6369; --good:#3dd68c; color-scheme:dark}
 
-*{box-sizing:border-box}
+*{box-sizing:border-box;touch-action:manipulation}
 html,body{-webkit-text-size-adjust:100%}
 body{font-weight:300;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px;line-height:1.5;padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px));-webkit-tap-highlight-color:transparent}
 button,input,select{font:inherit;color:inherit}
@@ -1312,6 +1312,7 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
     var t="dark";try{t=localStorage.getItem("sp-theme")||"dark"}catch(e){}
     t=t==="light"?"dark":"light";try{localStorage.setItem("sp-theme",t)}catch(e){}
     applyTheme();
+  }
 
   /* 최신 반영: 저장된 사본·앱 캐시·서비스워커를 지우고 저장소의 최신 데이터로 다시 불러온다 */
   function refreshAll(){
@@ -1321,11 +1322,12 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
     try{if(window.caches)jobs.push(caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k)}))}))}catch(e){}
     try{if(navigator.serviceWorker)jobs.push(navigator.serviceWorker.getRegistrations().then(function(rs){return Promise.all(rs.map(function(r){return r.unregister()}))}))}catch(e){}
     Promise.all(jobs.map(function(p){return p.catch(function(){})})).then(function(){
+      try{sessionStorage.setItem("sp-fresh","1")}catch(e){}
       location.replace(location.pathname+"?fresh="+Date.now());
     });
   }
-  }
   applyTheme();
+  try{if(sessionStorage.getItem("sp-fresh")){sessionStorage.removeItem("sp-fresh");setTimeout(function(){toast("최신 데이터로 다시 불러왔어요")},1800)}}catch(e){}
 
   /* ---------- 과목별·교재별 진도 ---------- */
   var P={cat:"all",subj:"all",open:{}};
