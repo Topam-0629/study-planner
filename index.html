@@ -449,10 +449,6 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
     <div class="cal" id="cal"></div>
 
     <div class="sec">
-      <div class="sec-head"><h3>이달의 목표<span class="cnt" id="goal-cnt"></span></h3><button class="addbtn" data-act="add" data-col="goals">+ 목표</button></div>
-      <ul id="goals"></ul>
-    </div>
-    <div class="sec">
       <div class="sec-head"><h3>과목별 달성</h3></div>
       <div class="subprog" id="subprog"></div>
     </div>
@@ -516,6 +512,7 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
 <div class="tmr" id="tmr" hidden role="dialog" aria-label="타이머"></div>
 <div class="toast" id="toast" hidden></div>
 
+<script src="cheers.js?v=1"></script>
 <script src="gh-store.js?v=1"></script>
 <script>
 (function(){
@@ -690,12 +687,6 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
     $("#cal").innerHTML=h;
 
     var mk=mkey(S.vy,S.vm);
-    var goals=sortItems("goals",S.goals.filter(function(g){return g.month===mk&&catOk(g)}));
-    var gd=goals.filter(function(g){return g.done}).length;
-    $("#goal-cnt").textContent=goals.length?gd+"/"+goals.length:"";
-    $("#goals").innerHTML=loading()?'<li class="empty">불러오는 중…</li>':
-      goals.length?goals.map(function(g){return itemRow("goals",g)}).join(""):
-      '<li class="empty">이번 달 목표가 아직 없어요. + 목표로 추가하거나 Claude에게 말로 부탁하세요.</li>';
 
     var agg={};
     S.plans.concat(S.todos).filter(catOk).forEach(function(it){
@@ -823,7 +814,21 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
   function findItem(col,id){return S[col].filter(function(x){return x.id===id})[0]}
   function toggle(col,id){
     var it=findItem(col,id);if(!it)return;
+    var becomingDone=!it.done;
     guard(col+"/"+id,function(){return S.db.doc(col+"/"+id).update({done:!it.done})});
+    if(becomingDone&&(col==="plans"||col==="todos"))cheer(it);
+  }
+  /* 완료할 때마다 응원 문구(같은 문구가 연달아 나오지 않게) */
+  var lastCheer=-1;
+  function cheer(it){
+    try{
+      var left=S.plans.concat(S.todos).filter(function(x){return x.date===it.date&&x.id!==it.id&&!x.done&&x.est>0}).length;
+      var pool=(left===0&&window.CHEERS_DAY&&window.CHEERS_DAY.length)?window.CHEERS_DAY:window.CHEERS;
+      if(!pool||!pool.length)return;
+      var i;do{i=Math.floor(Math.random()*pool.length)}while(pool.length>1&&i===lastCheer&&pool===window.CHEERS);
+      if(pool===window.CHEERS)lastCheer=i;
+      toast(pool[i]);
+    }catch(e){}
   }
   function postpone(col,id){
     var it=findItem(col,id);if(!it)return;
