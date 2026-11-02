@@ -421,6 +421,7 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
       <div class="sub"><span id="today-label"></span><span class="st" id="st"><i></i><span id="st-t">연결 중</span></span></div>
     </div>
     <div class="hbtns">
+      <button class="hbtn" id="hb-fresh" data-act="refresh-all">최신 반영</button>
       <button class="hbtn" data-act="open-progress">과목별 진도</button>
       <button class="hbtn" id="hb-timer" data-act="open-timer">타이머</button>
       <button class="hbtn" data-act="theme" id="hb-theme">화이트</button>
@@ -1311,6 +1312,18 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
     var t="dark";try{t=localStorage.getItem("sp-theme")||"dark"}catch(e){}
     t=t==="light"?"dark":"light";try{localStorage.setItem("sp-theme",t)}catch(e){}
     applyTheme();
+
+  /* 최신 반영: 저장된 사본·앱 캐시·서비스워커를 지우고 저장소의 최신 데이터로 다시 불러온다 */
+  function refreshAll(){
+    var b=document.getElementById("hb-fresh");if(b){b.textContent="불러오는 중…";b.disabled=true}
+    try{localStorage.removeItem(CK)}catch(e){}
+    var jobs=[];
+    try{if(window.caches)jobs.push(caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k)}))}))}catch(e){}
+    try{if(navigator.serviceWorker)jobs.push(navigator.serviceWorker.getRegistrations().then(function(rs){return Promise.all(rs.map(function(r){return r.unregister()}))}))}catch(e){}
+    Promise.all(jobs.map(function(p){return p.catch(function(){})})).then(function(){
+      location.replace(location.pathname+"?fresh="+Date.now());
+    });
+  }
   }
   applyTheme();
 
@@ -1431,6 +1444,7 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
     else if(a==="prg-open"){var kk=el.dataset.k;P.open[kk]=!P.open[kk];renderProgress();return}
     else if(a==="prg-go"){S.sel=el.dataset.date;var dd=parse(S.sel);S.vy=dd.getFullYear();S.vm=dd.getMonth()+1;S.view="day";try{localStorage.setItem("sp-view","day")}catch(x){}closeProgress()}
     else if(a==="theme"){toggleTheme();return}
+    else if(a==="refresh-all"){refreshAll();return}
     else if(a==="tab"){S.view=el.dataset.view;try{localStorage.setItem("sp-view",S.view)}catch(x){}}
     else if(a==="toggle"){toggle(el.dataset.col,el.dataset.id);return}
     else if(a==="postpone"){postpone(el.dataset.col,el.dataset.id);return}
