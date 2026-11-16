@@ -507,7 +507,7 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
   <button data-act="tab" data-view="day" aria-selected="true">일간</button>
 </nav>
 
-<div class="prg" id="prg" hidden><div class="prg-in"><div class="prg-top"><div class="r1"><h2>과목별 진도</h2><button class="prg-x" data-act="prg-close">닫기</button></div><div class="prg-chips" id="prg-cat"></div><div class="prg-chips" id="prg-sub"></div></div><div id="prg-body"></div></div></div>
+<div class="prg" id="prg" hidden><div class="prg-in"><div class="prg-top"><div class="r1"><h2>과목별 진도</h2><button class="prg-x" data-act="prg-close">닫기</button></div><div class="prg-chips" id="prg-cat"></div><div class="prg-chips" id="prg-term"></div><div class="prg-chips" id="prg-sub"></div></div><div id="prg-body"></div></div></div>
 <div class="ov" id="ov" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
 <div class="tmr" id="tmr" hidden role="dialog" aria-label="타이머"></div>
 <div class="toast" id="toast" hidden></div>
@@ -1337,7 +1337,9 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
   try{if(sessionStorage.getItem("sp-fresh")){sessionStorage.removeItem("sp-fresh");setTimeout(function(){toast("최신 데이터로 다시 불러왔어요")},1800)}}catch(e){}
 
   /* ---------- 과목별·교재별 진도 ---------- */
-  var P={cat:"all",subj:"all",open:{}};
+  var P={cat:"all",subj:"all",term:"all",open:{}};
+  var EXAM_END="2026-12-18";var EXAM_NEXT="2026-12-19";/* 기말고사 마지막 날: 이날까지 기말 전, 다음 날부터 기말 후 */
+  function inTerm(d){return P.term==="all"||(P.term==="pre"?d<=EXAM_END:d>EXAM_END)}
   var GRP_RULES=[
     [/^1등급 만들기/,"1등급 만들기 역학과에너지"],[/^RPM 미적분/,"RPM 미적분Ⅰ"],[/^자이스토리 대수/,"자이스토리 대수"],[/^방인혁.*실전문제/,"방인혁 실전문제"],
     [/^시발점 기하/,"시발점 기하"],[/^RPM 기하/,"RPM 기하"],[/^쎈 기하/,"쎈 기하"],[/^자이스토리 기하/,"자이스토리 기하"],
@@ -1363,6 +1365,7 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
     S.plans.concat(S.todos).forEach(function(it){
       if(!it.date||!(it.est>0)||/^오늘 푼 문제 오답/.test(it.title||""))return;
       if(P.cat!=="all"&&it.cat!==P.cat)return;
+      if(!inTerm(it.date))return;
       if(P.subj!=="all"&&it.subject!==P.subj)return;
       var nm=grpName(it),k=it.subject+"|"+nm+"|"+(it.cat||"");
       var g=map[k];
@@ -1381,7 +1384,9 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
     if($("#prg").hidden)return;
     var cats=[["all","전체"],["정시","정시"],["수시","내신"]];
     $("#prg-cat").innerHTML=cats.map(function(c){return '<button data-act="prg-cat" data-v="'+c[0]+'" aria-pressed="'+(P.cat===c[0])+'">'+c[1]+"</button>"}).join("");
-    var subs=S.subjects.filter(function(s){return S.plans.concat(S.todos).some(function(it){return it.subject===s.id&&it.est>0&&(P.cat==="all"||it.cat===P.cat)})});
+    var terms=[["all","기말 전후 모두"],["pre","기말 전 (~"+md(EXAM_END)+")"],["post","기말 후 ("+md(EXAM_NEXT)+"~)"]];
+    $("#prg-term").innerHTML=terms.map(function(c){return '<button data-act="prg-term" data-v="'+c[0]+'" aria-pressed="'+(P.term===c[0])+'">'+c[1]+"</button>"}).join("");
+    var subs=S.subjects.filter(function(s){return S.plans.concat(S.todos).some(function(it){return it.subject===s.id&&it.est>0&&it.date&&inTerm(it.date)&&(P.cat==="all"||it.cat===P.cat)})});
     $("#prg-sub").innerHTML='<button data-act="prg-sub" data-v="all" aria-pressed="'+(P.subj==="all")+'">모든 과목</button>'+subs.map(function(s){return '<button data-act="prg-sub" data-v="'+esc(s.id)+'" style="--c:'+esc(s.color)+'" aria-pressed="'+(P.subj===s.id)+'"><i></i>'+esc(s.name)+"</button>"}).join("");
     var gs=progGroups(),b="";
     if(!gs.length){$("#prg-body").innerHTML='<div class="empty">표시할 계획이 없어요</div>';return}
@@ -1452,6 +1457,7 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
     else if(a==="prg-close"){closeProgress();return}
     else if(a==="prg-cat"){P.cat=el.dataset.v;renderProgress();return}
     else if(a==="prg-sub"){P.subj=el.dataset.v;renderProgress();return}
+    else if(a==="prg-term"){P.term=el.dataset.v;renderProgress();return}
     else if(a==="prg-open"){var kk=el.dataset.k;P.open[kk]=!P.open[kk];renderProgress();return}
     else if(a==="prg-go"){S.sel=el.dataset.date;var dd=parse(S.sel);S.vy=dd.getFullYear();S.vm=dd.getMonth()+1;S.view="day";try{localStorage.setItem("sp-view","day")}catch(x){}closeProgress()}
     else if(a==="theme"){toggleTheme();return}
