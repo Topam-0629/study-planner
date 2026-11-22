@@ -412,6 +412,15 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
 .wk-emp{padding:12px 4px;color:var(--mute);font-size:15px}
 @media (min-width:700px){.wk-days{grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}.wk-it .wt{font-size:18px}}
 @media (max-width:699px){body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none}.wk-sum{grid-template-columns:repeat(2,1fr)}.wk-sum b{font-size:20px}}
+
+/* 당겨오기 */
+#pulls{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.pullbtn{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid var(--line);border-radius:12px;text-align:left;border-left:5px solid var(--c)}
+.pullbtn:active{background:var(--soft)}
+.pullbtn .pg{font-weight:700;min-width:44px;color:var(--c)}
+.pullbtn .pt{flex:1;min-width:0;font-size:14px;line-height:1.35}
+.pullbtn .pm{font-size:12px;opacity:.65;white-space:nowrap}
+.pullbtn.next{box-shadow:0 0 0 2px var(--c) inset}
 </style>
 
 <div class="app">
@@ -485,6 +494,11 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
     <div class="sec">
       <div class="sec-head"><h3>시간표<span class="cnt" id="plan-cnt"></span></h3><button class="addbtn" data-act="add" data-col="plans">+ 시간표</button></div>
       <ul id="plans"></ul>
+    </div>
+    <div class="sec" id="pull-sec" hidden>
+      <div class="sec-head"><h3>남는 시간에 당겨오기</h3></div>
+      <p class="hint" id="pull-hint"></p>
+      <ul id="pulls"></ul>
     </div>
     <div class="sec">
       <div class="sec-head"><h3>체크리스트<span class="cnt" id="todo-cnt"></span></h3><button class="addbtn" data-act="add" data-col="todos">+ 할 일</button></div>
@@ -737,8 +751,65 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
     $("#todos").innerHTML=loading()?ld:todos.length?todos.map(function(p){return itemRow("todos",p)}).join(""):
       '<li class="empty">체크리스트가 비어 있어요.</li>';
     $("#sessions").innerHTML=loading()?ld:sess.length?sess.map(sessionRow).join(""):
-      '<li class="empty">타이머로 공부하면 여기에 기록돼요.</li>';
+      '<li class="empty">타이머로 공부하면 여기에 기록돼요.</li>';    renderPull();
   }
+  /* ---------- 남는 시간에 당겨오기 (과목별 다음 항목) ---------- */
+  var PULL_GROUPS=[
+    {key:"미적",sub:"math",f:function(p){return /^수학-(미적분1\(내신\)|미적분1복습|RPM미적분\(정시\)|미적분1책복습)$/.test(p.trk||"")}},
+    {key:"대수",sub:"math",f:function(p){return /^수학-(대수|자이스토리대수)$/.test(p.trk||"")}},
+    {key:"기하",sub:"geometry",f:function(p){return p.subject==="geometry"}},
+    {key:"물리",sub:"physics",f:function(p){return p.subject==="physics"}},
+    {key:"생명",sub:"biology",f:function(p){return p.subject==="biology"}},
+    {key:"영어",sub:"english",f:function(p){return /^영어/.test(p.trk||"")}},
+    {key:"브크",sub:"korean",f:function(p){return p.trk==="국어-비문학(CC)"},bk:true}
+  ];
+  function pullKey(p){return [p.date,p.col==="todos"?({school:0,meal:1}[p.slot]||0):2,p.col==="todos"?(p.order||0):clock2min(p.start)]}
+  function pullNext(g){
+    var ok=function(p){return !p.done&&p.date>today&&p.slot!=="marker"&&!/기말 복습/.test(p.title||"")&&g.f(p)};
+    var c=S.plans.filter(ok).map(function(p){return {col:"plans",it:p,date:p.date,start:p.start}}).concat(
+          S.todos.filter(ok).map(function(p){return {col:"todos",it:p,date:p.date,slot:p.slot,order:p.order}}));
+    c.sort(function(a,b){var x=pullKey(a),y=pullKey(b);for(var i=0;i<3;i++){if(x[i]<y[i])return -1;if(x[i]>y[i])return 1}return 0});
+    return c[0];
+  }
+  function lastPull(){try{return localStorage.getItem("sp-lastpull")||""}catch(e){return ""}}
+  function renderPull(){
+    var sec=$("#pull-sec");if(!sec)return;
+    if(S.sel!==today||loading()){sec.hidden=true;return}
+    var exam=today<="2026-12-13", lp=lastPull(), wantBk=exam&&lp==="exam", rows="";
+    PULL_GROUPS.forEach(function(g){
+      if(exam&&g.key==="대수")return;
+      var nx0=pullNext(g);if(!nx0)return;var it=nx0.it;
+      var sb=subj(g.sub), d=parse(it.date), nx=exam&&(g.bk?wantBk:!wantBk);
+      rows+='<li><button class="pullbtn'+(nx?" next":"")+'" style="--c:'+esc(sb.color)+'" data-act="pull" data-col="'+nx0.col+'" data-id="'+esc(it.id)+'" data-bk="'+(g.bk?1:0)+'">'+
+        '<span class="pg">'+esc(g.key)+'</span><span class="pt">'+esc(it.title)+'</span><span class="pm">'+(it.est>0?it.est+"분 · ":"")+(d.getMonth()+1)+"/"+d.getDate()+'</span></button></li>';
+    });
+    sec.hidden=!rows;
+    $("#pulls").innerHTML=rows;
+    $("#pull-hint").textContent=exam?("오늘 계획을 다 하고 시간이 남으면: 시험기간 과목 하나 → 브크 하나 번갈아. 지금은 "+(wantBk?"브크":"시험기간 과목")+" 차례예요(테두리 표시). 누르면 그 과목 다음 항목을 오늘 맨 뒤로 가져와요."):
+      "누르면 그 과목의 다음 항목을 오늘 맨 뒤로 가져와요.";
+  }
+  function pullItem(col,id,bk){
+    var it=findItem(col,id);if(!it)return;
+    if(col==="todos"){
+      var pv=lastPull(), fd={date:it.date};
+      try{localStorage.setItem("sp-lastpull",bk?"bk":"exam")}catch(e){}
+      guard("pl/"+id,function(){return S.db.doc("todos/"+id).update({date:today,pulled:(it.pulled||0)+1})}).then(function(){
+        toast("오늘 체크리스트로 가져왔어요","되돌리기",function(){try{localStorage.setItem("sp-lastpull",pv)}catch(e){}guard("pl/"+id,function(){return S.db.doc("todos/"+id).update(fd)})});
+      });
+      return;
+    }
+    var n=studyNow(), nowMin=n.getHours()*60+n.getMinutes()+180;
+    var last=S.plans.filter(function(p){return p.date===today&&p.id!==id}).reduce(function(a,p){var e=clock2min(p.end);return isNaN(e)?a:Math.max(a,e)},0);
+    var st=Math.max(last,Math.ceil(nowMin/5)*5), est=it.est>0?it.est:30;
+    var from={date:it.date,start:it.start,end:it.end||""};
+    var to={date:today,start:pad(Math.floor(st/60))+":"+pad(st%60),end:pad(Math.floor((st+est)/60))+":"+pad((st+est)%60),pulled:(it.pulled||0)+1};
+    var prev=lastPull();
+    try{localStorage.setItem("sp-lastpull",bk?"bk":"exam")}catch(e){}
+    guard("pl/"+id,function(){return S.db.doc("plans/"+id).update(to)}).then(function(){
+      toast("오늘 "+to.start+"에 가져왔어요","되돌리기",function(){try{localStorage.setItem("sp-lastpull",prev)}catch(e){}guard("pl/"+id,function(){return S.db.doc("plans/"+id).update(from)})});
+    });
+  }
+
 
   /* ---------- 주간(크게 보기) ---------- */
   function dayCap(key){
@@ -1465,6 +1536,7 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
     else if(a==="tab"){S.view=el.dataset.view;try{localStorage.setItem("sp-view",S.view)}catch(x){}}
     else if(a==="toggle"){toggle(el.dataset.col,el.dataset.id);return}
     else if(a==="postpone"){postpone(el.dataset.col,el.dataset.id);return}
+    else if(a==="pull"){pullItem(el.dataset.col||"plans",el.dataset.id,el.dataset.bk==="1");return}
     else if(a==="edit"){openSheet(el.dataset.col,el.dataset.id);return}
     else if(a==="add"){openSheet(el.dataset.col,null);return}
     else if(a==="open-session"){openSession(el.dataset.id);return}
