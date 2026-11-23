@@ -420,6 +420,8 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
 .pullbtn .pg{font-weight:700;min-width:44px;color:var(--c)}
 .pullbtn .pt{flex:1;min-width:0;font-size:14px;line-height:1.35}
 .pullbtn .pm{font-size:12px;opacity:.65;white-space:nowrap}
+.pullbtn.arm{background:var(--soft);box-shadow:0 0 0 3px var(--c) inset}
+.pullbtn.arm .pm{opacity:1;font-weight:700;color:var(--c)}
 .pullbtn.next{box-shadow:0 0 0 2px var(--c) inset}
 </style>
 
@@ -771,6 +773,7 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
     c.sort(function(a,b){var x=pullKey(a),y=pullKey(b);for(var i=0;i<3;i++){if(x[i]<y[i])return -1;if(x[i]>y[i])return 1}return 0});
     return c[0];
   }
+  var pullArm=null, pullLock=0;
   function lastPull(){try{return localStorage.getItem("sp-lastpull")||""}catch(e){return ""}}
   function renderPull(){
     var sec=$("#pull-sec");if(!sec)return;
@@ -785,8 +788,8 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
     });
     sec.hidden=!rows;
     $("#pulls").innerHTML=rows;
-    $("#pull-hint").textContent=exam?("오늘 계획을 다 하고 시간이 남으면: 시험기간 과목 하나 → 브크 하나 번갈아. 지금은 "+(wantBk?"브크":"시험기간 과목")+" 차례예요(테두리 표시). 누르면 그 과목 다음 항목을 오늘 맨 뒤로 가져와요."):
-      "누르면 그 과목의 다음 항목을 오늘 맨 뒤로 가져와요.";
+    $("#pull-hint").textContent=exam?("오늘 계획을 다 하고 시간이 남으면: 시험기간 과목 하나 → 브크 하나 번갈아. 지금은 "+(wantBk?"브크":"시험기간 과목")+" 차례예요(테두리 표시). 두 번 누르면 그 과목 다음 항목을 오늘 맨 뒤로 가져와요."):
+      "두 번 누르면 그 과목의 다음 항목을 오늘 맨 뒤로 가져와요.";
   }
   function pullItem(col,id,bk){
     var it=findItem(col,id);if(!it)return;
@@ -1536,7 +1539,18 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
     else if(a==="tab"){S.view=el.dataset.view;try{localStorage.setItem("sp-view",S.view)}catch(x){}}
     else if(a==="toggle"){toggle(el.dataset.col,el.dataset.id);return}
     else if(a==="postpone"){postpone(el.dataset.col,el.dataset.id);return}
-    else if(a==="pull"){pullItem(el.dataset.col||"plans",el.dataset.id,el.dataset.bk==="1");return}
+    else if(a==="pull"){
+      /* 잘못 눌림 방지: 한 번 누르면 확인 상태, 3초 안에 같은 버튼을 한 번 더 눌러야 가져옴. 가져온 뒤 2초는 다른 당겨오기 막음 */
+      if(Date.now()<(pullLock||0))return;
+      if(pullArm&&pullArm.id===el.dataset.id&&Date.now()<pullArm.until){
+        pullArm=null;pullLock=Date.now()+2000;pullItem(el.dataset.col||"plans",el.dataset.id,el.dataset.bk==="1");return;
+      }
+      pullArm={id:el.dataset.id,until:Date.now()+3000};
+      [].forEach.call(document.querySelectorAll(".pullbtn.arm"),function(b){b.classList.remove("arm")});
+      el.classList.add("arm");
+      var pm=el.querySelector(".pm");if(pm){pm.dataset.o=pm.dataset.o||pm.textContent;pm.textContent="한 번 더 누르면 가져와요"}
+      setTimeout(function(){if(pullArm&&pullArm.id===el.dataset.id&&Date.now()>=pullArm.until){pullArm=null}el.classList.remove("arm");if(pm&&pm.dataset.o)pm.textContent=pm.dataset.o},3100);
+      return}
     else if(a==="edit"){openSheet(el.dataset.col,el.dataset.id);return}
     else if(a==="add"){openSheet(el.dataset.col,null);return}
     else if(a==="open-session"){openSession(el.dataset.id);return}
