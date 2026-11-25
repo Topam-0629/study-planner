@@ -816,9 +816,9 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
 
   /* ---------- 주간(크게 보기) ---------- */
   function dayCap(key){
-    if(key>="2026-12-07"&&key<="2026-12-18")return 0;
+    if(key>="2026-12-14"&&key<="2026-12-18")return 0;
     if(key>="2026-12-19")return 720;
-    var w=parse(key).getDay();return w===6?864:w===0?288:432;
+    var w=parse(key).getDay();return w===6?864:w===0?610:490;
   }
   function hmin(m){m=Math.round(m);var h=Math.floor(m/60);return h?(m%60?h+"시간 "+(m%60)+"분":h+"시간"):m+"분"}
   function renderWeek(){
@@ -834,7 +834,7 @@ body[data-view="week"] .pane-month,body[data-view="week"] .pane-day{display:none
       var all=plans.concat(todos), dn=all.filter(function(x){return x.done}).length;
       totP+=pm; totC+=cap; totN+=all.length; totD+=dn;
       var free=cap-pm, tag="";
-      if(cap===0)tag=(key<="2026-12-13"?"내신 마무리 주간":"기말고사");
+      if(cap===0)tag="기말고사";
       var meta='<em>계획 '+hmin(pm)+'</em>'+(cap?'<br>'+(free>=0?'남는 시간 <em>'+hmin(free)+'</em>':'<span class="over">'+hmin(-free)+' 초과</span>'):(tag?'<br>'+tag:""));
       var rows=plans.map(function(p){
         var sb=subj(p.subject);
